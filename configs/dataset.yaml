@@ -1,0 +1,30 @@
+dataset:
+
+  name: surveillance_theft_dataset
+
+  root: datasets/theft_dataset
+
+  train:
+    annotations: datasets/theft_dataset/train.csv
+    videos: datasets/theft_dataset/videos/train
+
+  validation:
+    annotations: datasets/theft_dataset/val.csv
+    videos: datasets/theft_dataset/videos/val
+
+  test:
+    annotations: datasets/theft_dataset/test.csv
+    videos: datasets/theft_dataset/videos/test
+
+
+labels:
+
+  normal: 0
+  theft: 1
+
+
+video:
+
+  frames: 16
+  image_size: 224
+  channels: 3
