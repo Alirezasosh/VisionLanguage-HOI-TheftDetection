@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data and generated artifacts
+data/
+datasets/
+weights/
+checkpoints/
+features/
+results/
+logs/
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# OS
+.DS_Store
+Thumbs.db
