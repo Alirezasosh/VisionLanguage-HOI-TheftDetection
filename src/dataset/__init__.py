@@ -1,3 +1,11 @@
-from .video_dataset import TheftVideoDataset, VideoRecord, discover_videos, records_from_csv, read_video_clip
+"""
+Dataset utilities.
+"""
 
-__all__ = ["TheftVideoDataset", "VideoRecord", "discover_videos", "records_from_csv", "read_video_clip"]
+from .video_dataset import TheftVideoDataset
+
+__all__ = [
+    "TheftVideoDataset",
+]
+
+__version__ = "0.1.0"

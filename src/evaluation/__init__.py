@@ -1,5 +1,5 @@
 """
-Evaluation utilities for the VisionLanguage-HOI-TheftDetection project.
+Evaluation utilities.
 """
 
 from .metrics import calculate_metrics

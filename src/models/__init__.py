@@ -1,11 +1,11 @@
 """
-Model components for the VisionLanguage-HOI-TheftDetection project.
+Model components for the project.
 """
 
-from .classifier import TheftClassifier
+from .classifier import VideoClassifier
 
 __all__ = [
-    "TheftClassifier",
+    "VideoClassifier",
 ]
 
 __version__ = "0.1.0"
