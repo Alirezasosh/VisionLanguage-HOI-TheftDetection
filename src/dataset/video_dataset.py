@@ -5,12 +5,11 @@ from pathlib import Path
 from typing import Sequence
 
 import cv2
+import pandas as pd
 import torch
 from torch.utils.data import Dataset
 
-
 VIDEO_EXTENSIONS = {".mp4", ".avi", ".mov", ".mkv", ".webm"}
-
 
 @dataclass(frozen=True)
 class VideoRecord:
@@ -20,7 +19,9 @@ class VideoRecord:
 
 def discover_videos(root: str | Path) -> list[VideoRecord]:
     root = Path(root)
-    records: list[VideoRecord] = []
+    if not root.exists():
+        return []
+    records = []
     for class_dir in sorted(p for p in root.iterdir() if p.is_dir()):
         try:
             label = int(class_dir.name)
@@ -32,15 +33,37 @@ def discover_videos(root: str | Path) -> list[VideoRecord]:
     return records
 
 
+def records_from_csv(csv_path: str | Path, video_root: str | Path) -> list[VideoRecord]:
+    csv_path, video_root = Path(csv_path), Path(video_root)
+    if not csv_path.exists():
+        return discover_videos(video_root)
+    df = pd.read_csv(csv_path)
+    path_col = next((c for c in ("video", "path", "filename", "file") if c in df.columns), None)
+    label_col = next((c for c in ("label", "target", "class", "y") if c in df.columns), None)
+    if path_col is None or label_col is None:
+        raise ValueError(f"CSV must contain a video/path/filename column and label/target/class column: {csv_path}")
+    records = []
+    for _, row in df.iterrows():
+        p = Path(str(row[path_col]))
+        if not p.is_absolute():
+            p = video_root / p
+        value = row[label_col]
+        try:
+            label = int(value)
+        except (TypeError, ValueError):
+            label = 1 if str(value).lower() in {"theft", "steal", "anomaly", "positive", "1"} else 0
+        records.append(VideoRecord(p, label))
+    return records
+
+
 def read_video_clip(path: str | Path, num_frames: int = 16, size: int = 224) -> torch.Tensor:
     cap = cv2.VideoCapture(str(path))
     if not cap.isOpened():
         raise RuntimeError(f"Could not open video: {path}")
     total = max(1, int(cap.get(cv2.CAP_PROP_FRAME_COUNT)))
     indices = torch.linspace(0, total - 1, num_frames).round().long().tolist()
-    frames = []
     wanted = set(indices)
-    i = 0
+    frames, i = [], 0
     while True:
         ok, frame = cap.read()
         if not ok:
@@ -57,25 +80,15 @@ def read_video_clip(path: str | Path, num_frames: int = 16, size: int = 224) -> 
         frames.append(frames[-1].clone())
     return torch.stack(frames[:num_frames])
 
-
 class TheftVideoDataset(Dataset):
-    """Minimal filesystem video dataset.
-
-    Expected layout: root/0/*.mp4 and root/1/*.mp4, or folders named
-    normal/theft (folder names are mapped to 0/1).
-    """
-
-    def __init__(self, root: str | Path, records: Sequence[VideoRecord] | None = None,
-                 num_frames: int = 16, size: int = 224):
+    def __init__(self, root: str | Path, records: Sequence[VideoRecord] | None = None, num_frames: int = 16, size: int = 224):
         self.root = Path(root)
         self.records = list(records) if records is not None else discover_videos(self.root)
-        self.num_frames = num_frames
-        self.size = size
+        self.num_frames, self.size = num_frames, size
 
-    def __len__(self) -> int:
+    def __len__(self):
         return len(self.records)
 
-    def __getitem__(self, index: int):
-        record = self.records[index]
-        clip = read_video_clip(record.path, self.num_frames, self.size)
-        return {"video": clip, "label": torch.tensor(record.label, dtype=torch.long), "path": str(record.path)}
+    def __getitem__(self, index):
+        r = self.records[index]
+        return {"video": read_video_clip(r.path, self.num_frames, self.size), "label": torch.tensor(r.label, dtype=torch.long), "path": str(r.path)}
